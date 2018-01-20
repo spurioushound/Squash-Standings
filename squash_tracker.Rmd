@@ -1,0 +1,136 @@
+---
+title: "Squash Standings"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+
+library(koboloadeR)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+###Get the data
+
+df<-kobo_data_downloader(formid = "200566",user = "spurious_hound:squashpw",api = "https://kc.humanitarianresponse.info/api/v1/")
+
+df$winner<-""
+
+if(df$ponescore > df$ptwoscore){
+  df$winner<-df$playerone
+  df$loser<-df$playertwo
+} else{
+  df$winner<-df$playertwo
+  df$loser<-df$playerone
+}
+
+df$windiff<-max(c(df$ponescore,df$ptwoscore)) - min(c(df$ponescore,df$ptwoscore))
+
+table(df$winner,df$loser)
+
+winstable<-df %>% group_by(playerone) %>%
+  summarise(Wins=n())
+
+
+Winner<-df %>% rename(Name=winner)%>% group_by(Name) %>%
+  summarise(Wins=n())
+
+Loser<-df %>% rename(Name=loser)%>% group_by(Name) %>%
+  summarise(Losses=n())
+
+record<-full_join(x=Winner,y=Loser,by="Name")
+
+
+
+
+pone<-df %>% rename(Name=playerone)%>% group_by(Name) %>%
+  summarise(Points_For=sum(ponescore),
+            Points_Against=sum(ptwoscore))
+
+
+ptwo<-df %>% rename(Name=playertwo)%>% group_by(Name) %>%
+  summarise(Points_For=sum(ptwoscore),
+            Points_Against=sum(ponescore))
+
+
+final<-rbind(pone,ptwo) %>% group_by(Name) %>%
+  summarise(Points_For=sum(Points_For),
+            Points_Against=sum(Points_Against)) %>% full_join(record,by="Name")
+
+full_join(x=Loser,y=Winner,by="Name")
+
+  
+```
+
+Column {data-width=600}
+---------------------------
+###Record
+```{r chart, echo=FALSE}
+
+renderPlotly({
+    newdata<-df
+    
+    f1 <- list(
+      family = "Arial, sans-serif",
+      size = 18,
+      color = "lightgrey"
+    )
+    f2 <- list(
+      family = "Old Standard TT, serif",
+      size = 14,
+      color = "black"
+    )
+    a <- list(
+      title = "Score Differential",
+      titlefont = f1,
+      showticklabels = TRUE,
+      tickangle = 45,
+      tickfont = f2,
+      exponentformat = "E",
+      range=c(-15,15)
+    )
+    
+    b <- list(
+      title = "Date",
+      titlefont = f1,
+      showline=FALSE,
+      showticklabels = FALSE,
+      tickangle = 45,
+      tickfont = f2,
+      exponentformat = "E"
+    )
+    
+    p <- plot_ly(data = newdata, x = ~start, y = ~windiff,color=~winner,colors="Set1", hoverinfo = 'text',
+    text=~paste(winner,windiff,sep = ","), marker=list(size=10)) %>%
+      layout(xaxis = b, yaxis = a)
+    
+    p
+  })
+ 
+```
+
+Column {data-width=400}
+---------------------------
+```{r}
+
+renderTable(final)
+
+```
+
+###Subsets
+```{r}
+checkboxGroupInput(inputId = "players",label="Players",
+            choices = unique(c(df$playerone,df$playertwo)),selected = "stephen")
+
+
+selectedData <- reactive({
+  df[df$playerone==input$players,]
+})
+
+renderTable(selectedData())
+
+```
+
+

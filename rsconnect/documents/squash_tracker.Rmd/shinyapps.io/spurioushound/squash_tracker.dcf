@@ -1,0 +1,12 @@
+name: squash_tracker
+title: squash_tracker
+username:
+account: spurioushound
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 151481
+bundleId: 1198053
+url: https://spurioushound.shinyapps.io/Squash_Tracker/
+when: 1517250174.4247
+asMultiple: FALSE
+asStatic: FALSE

@@ -6,19 +6,26 @@ runtime: shiny
 
 ```{r global, include=FALSE}
 
+
+#Pull in Relevant Libraries
 library(koboloadeR)
 library(plotly)
 library(ggplot2)
-library(dplyr)
-library(data.table)
+library(tidyverse)
+library(tidyr)
+library(elo)
 
 ###Get the data
 
+#Create the Initial Dataframe pulling from Kobo Server (KoboloadeR package)
 df<-kobo_data_downloader(formid = "200566",user = "spurious_hound:squashpw",api = "https://kc.humanitarianresponse.info/api/v1/")
 
+#Compute the difference in scores
+df<-df %>% mutate(windiff=WinScore-LosScore,
+                  game=1:n())
 
-df$windiff<-df$WinScore-df$LosScore
 
+#
 winstable<-df %>% group_by(Winner) %>%
   summarise(Wins=n())
 
@@ -44,12 +51,21 @@ ptwo<-df %>% rename(Name=Loser)%>% group_by(Name) %>%
             Points_Against=sum(WinScore))
 
 
+#Calculate ELOS Scores
+#Run ELos Scoring Function
+eloscores<-elo.run(score(WinScore,LosScore)~Winner+Loser,data=df,k=20)
+
+
+scores<-as.data.frame(final.elos(eloscores))
+
+
+scores$Name<-rownames(scores)
+
+
 final<-rbind(pone,ptwo) %>% group_by(Name) %>%
   summarise(Points_For=sum(Points_For),
-            Points_Against=sum(Points_Against)) %>% full_join(record,by="Name") %>% arrange(desc(Wins))
-
-final[is.na(final)]<-0
-
+            Points_Against=sum(Points_Against)) %>% full_join(record,by="Name") %>% arrange(desc(Wins)) %>%
+  replace_na(list(Wins=0,Losses=0)) %>% mutate(Win_Pct=paste((round(Wins/(Wins+Losses),2)) * 100,"%")) %>% select(Name, Wins, Losses, Win_Pct,Points_For, Points_Against) %>% full_join(scores,by="Name") %>% rename(Score=`final.elos(eloscores)`)
 
   
 ```
@@ -92,8 +108,8 @@ renderPlotly({
       exponentformat = "E"
     )
     
-    p <- plot_ly(data = newdata, x = ~start, y = ~windiff,color=~Winner,colors="Set1", hoverinfo = 'text',
-    text=~paste(Winner,windiff,sep = ","), marker=list(size=10)) %>%
+    p <- plot_ly(data = newdata, x = ~game, y = ~windiff,color=~Winner,colors="Set1", hoverinfo = 'text',
+    text=~paste(survey_day,HTML("<br>"),"Winner: ",Winner,", ",HTML("<br>"),"Loser: ", Loser,", ",HTML("<br>"), "Differential: ",windiff,sep = ""), marker=list(size=10)) %>%
       layout(xaxis = b, yaxis = a)
     
     p
@@ -105,7 +121,7 @@ Column {data-width=400}
 ---------------------------
 ```{r}
 
-renderTable(final)
+renderDataTable(final)
 
 ```
 

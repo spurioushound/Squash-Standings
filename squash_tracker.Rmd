@@ -76,7 +76,7 @@ Column {data-width=600}
 ```{r chart, echo=FALSE}
 
 renderPlotly({
-    newdata<-df
+    newdata<-selectedData()
     
     f1 <- list(
       family = "Arial, sans-serif",
@@ -128,11 +128,17 @@ renderDataTable(final)
 ###Subsets
 ```{r}
 checkboxGroupInput(inputId = "players",label="Players",
-            choices = unique(c(df$Winner,df$Loser)),selected = "stephen")
+            choices = unique(c(df$Winner,df$Loser)),selected = "NULL")
 
 
 selectedData <- reactive({
-  df[df$Winner==input$players,]
+    
+  if(is.null(input$players)){
+    df
+  } else{
+    df[df$Winner==as.character(input$players) | df$Loser==as.character(input$players),]
+  }
+
 })
 
 renderTable(selectedData())

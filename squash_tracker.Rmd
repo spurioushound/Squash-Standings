@@ -136,12 +136,13 @@ selectedData <- reactive({
   if(is.null(input$players)){
     df
   } else{
-    df[df$Winner==as.character(input$players) | df$Loser==as.character(input$players),]
+    names<-unlist(input$players)
+    df[df$Winner %in% names & df$Loser %in% names,]
   }
 
 })
 
-renderTable(selectedData())
+renderText(input$players)
 
 ```
 

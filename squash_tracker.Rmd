@@ -18,7 +18,7 @@ library(elo)
 ###Get the data
 
 #Create the Initial Dataframe pulling from Kobo Server (KoboloadeR package)
-df<-kobo_data_downloader(formid = "200566",user = "spurious_hound:squashpw",api = "https://kc.humanitarianresponse.info/api/v1/")
+df<-kobo_data_downloader(formid = "200566",user = "uname:pw",api = "https://kc.humanitarianresponse.info/api/v1/")
 
 #Compute the difference in scores
 df<-df %>% arrange(survey_day) %>% mutate(windiff=WinScore-LosScore,
